@@ -31,9 +31,11 @@ async function loadContractABI() {
 // Function to call contract methods with logging
 async function callContractMethod(methodName, params = [], isSend = false, sendParams = {}) {
     try {
-        console.log(`Calling contract method: ${methodName}`);
-        console.log(`Parameters:`, params);
-        
+        if (CONFIG.debug[network]) {
+            console.log(`Calling contract method: ${methodName}`);
+            console.log(`Parameters:`, params);
+        }
+            
         let result;
         if (isSend) {
             console.log(`Send parameters:`, sendParams);
@@ -47,7 +49,9 @@ async function callContractMethod(methodName, params = [], isSend = false, sendP
             });
         }
         
-        console.log(`Method ${methodName} returned:`, result);
+        if (CONFIG.debug[network]) {
+            console.log(`Method ${methodName} returned:`, result);
+        }
         return result;
     } catch (error) {
         console.error(`Error calling ${methodName}:`, error);
@@ -82,11 +86,6 @@ async function callContractMethod(methodName, params = [], isSend = false, sendP
             errorMessage = error.reason;
         }
         
-        // If we still have the generic error message, try to make it more user-friendly
-        if (errorMessage === 'Internal JSON-RPC error.') {
-            errorMessage = 'Transaction failed. Please check your balance and try again.';
-        }
-        
         showError(errorMessage);
         throw error;
     }
@@ -101,8 +100,8 @@ async function getCurrentNetwork() {
         switch (chainId) {
             case CONFIG.chainIds.hardhat:
                 return 'hardhat';
-            case CONFIG.chainIds.mumbai:
-                return 'mumbai';
+            case CONFIG.chainIds.sepolia:
+                return 'sepolia';
             case CONFIG.chainIds.polygon:
                 return 'polygon';
             default:

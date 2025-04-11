@@ -9,17 +9,13 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
       accounts: [
-        process.env.LOCAL_PRIVATE_KEY1,
-        process.env.LOCAL_PRIVATE_KEY2,
-        process.env.LOCAL_PRIVATE_KEY3
+        process.env.LOCAL_PRIVATE_KEY
       ]
-    }
-    // Add your network configurations here
-    // Example for testnet:
-    // sepolia: {
-    //   url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-    //   accounts: [process.env.PRIVATE_KEY]
-    // }
+    },
+    sepolia: {
+      url: process.env.SEPOLIA_RPC_URL || "",
+      accounts: [process.env.SEPOLIA_PRIVATE_KEY]
+    },
   },
   // Ignition configuration
   ignition: {
