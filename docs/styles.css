@@ -1,0 +1,263 @@
+/* General styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+/* Error message styles */
+#error-message {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ff5252;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 80%;
+    text-align: center;
+}
+
+#error-message .close-btn {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* Bank controls */
+.bank-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.bank-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.bank-state {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.bank-state div {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+/* Account controls */
+.account-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.account-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.account-state {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.account-state div {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+/* Bets controls */
+.bets-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.bets-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.bet-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.bet-btn.even {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.bet-btn.odd {
+    background-color: #2196F3;
+    color: white;
+}
+
+.bet-btn.red {
+    background-color: #f44336;
+    color: white;
+}
+
+.bet-btn.black {
+    background-color: #333;
+    color: white;
+}
+
+.bet-btn:hover {
+    opacity: 0.9;
+}
+
+.bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Bets list */
+.bets-list {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+#bets-container {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.bet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.bet-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.bet-amount {
+    font-weight: bold;
+}
+
+.bet-outcome {
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.bet-outcome.pending {
+    background-color: #f0f0f0;
+    color: #666;
+}
+
+.bet-outcome.won {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.bet-outcome.lost {
+    background-color: #f44336;
+    color: white;
+}
+
+#roll-btn {
+    padding: 10px 20px;
+    background-color: #9C27B0;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#roll-btn:hover {
+    background-color: #7B1FA2;
+}
+
+#roll-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Bet result */
+.bet-result {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.bet-result h3 {
+    margin-top: 0;
+}
+
+.bet-result div {
+    margin-bottom: 10px;
+}
+
+/* Button styles */
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+} 

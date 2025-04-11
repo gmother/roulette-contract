@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roulette DApp</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Roulette DApp</h1>
+        
+        <!-- Error message -->
+        <div id="error-message">
+            <span class="error-text"></span>
+            <button class="close-btn">&times;</button>
+        </div>
+
+        <!-- Bank controls (visible only to owner) -->
+        <div class="bank-controls">
+            <h2>Bank Management</h2>
+            <div class="bank-actions">
+                <button id="deposit-to-bank-btn">Deposit to Bank</button>
+                <button id="withdraw-from-bank-btn">Withdraw from Bank</button>
+                <button id="set-max-bet-btn">Set Max Bet</button>
+                <button id="set-withdrawal-fee-btn">Set Withdrawal Fee</button>
+            </div>
+            <div class="bank-state">
+                <div>Bank Balance: <span id="bank-balance">0</span> Gwei</div>
+                <div>Total Player Balances: <span id="total-player-balances">0</span> Gwei</div>
+                <div>Max Bet: <span id="max-bet">0</span> Gwei</div>
+                <div>Withdrawal Fee: <span id="withdrawal-fee">0</span> Gwei</div>
+            </div>
+        </div>
+
+        <!-- Account controls -->
+        <div class="account-controls">
+            <h2>Account Management</h2>
+            <div class="account-actions">
+                <button id="deposit-to-account-btn">Deposit to Account</button>
+                <button id="withdraw-from-account-btn">Withdraw from Account</button>
+            </div>
+            <div class="account-state">
+                <div>Your Balance: <span id="player-balance">0</span> Gwei</div>
+            </div>
+        </div>
+
+        <!-- Bets controls -->
+        <div class="bets-controls">
+            <h2>Place Bets</h2>
+            <div class="bets-actions">
+                <button id="bet-even-btn" class="bet-btn even">Even</button>
+                <button id="bet-odd-btn" class="bet-btn odd">Odd</button>
+                <button id="bet-red-btn" class="bet-btn red">Red</button>
+                <button id="bet-black-btn" class="bet-btn black">Black</button>
+            </div>
+            
+            <!-- Current bets list -->
+            <div class="bets-list">
+                <h3>Current Bets</h3>
+                <div id="bets-container"></div>
+                <button id="roll-btn" disabled>Roll</button>
+            </div>
+            
+            <!-- Bet result -->
+            <div class="bet-result">
+                <h3>Last Roll</h3>
+                <div>Result: <span id="last-result">-</span></div>
+                <div>Total Bet: <span id="total-bet-amount">0</span> Gwei</div>
+                <div>Total Win: <span id="total-win-amount">0</span> Gwei</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 

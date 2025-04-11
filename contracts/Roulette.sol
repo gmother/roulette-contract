@@ -38,15 +38,19 @@ contract Roulette is Ownable {
         uint256 amount;
     }
 
+    // Structure to hold roll result
+    struct RollResult {
+        uint8 randomNumber;
+        uint256[] betResults;
+    }
+
     event BankDeposit(address indexed from, uint256 amount);
     event BankWithdrawal(address indexed to, uint256 amount);
     event PlayerDeposit(address indexed player, uint256 amount);
     event PlayerWithdrawal(address indexed player, uint256 amount);
     event WithdrawalFeeUpdated(uint256 oldFee, uint256 newFee);
     event MaxBetUpdated(uint256 oldMaxBet, uint256 newMaxBet);
-    event BetPlaced(address indexed player, uint8 betType, uint8 number, uint256 amount);
-    event BetWon(address indexed player, uint256 amount);
-    event BetLost(address indexed player, uint256 amount);
+    event Roll(address indexed player, RollResult result);
 
     constructor() Ownable(msg.sender) {
         withdrawalFee = 100000 gwei;
@@ -55,6 +59,7 @@ contract Roulette is Ownable {
 
     // Function to deposit funds to the bank
     function depositToBank() external payable onlyOwner {
+        require(msg.value > 0, "Amount must be greater than 0");
         emit BankDeposit(msg.sender, msg.value);
     }
 
@@ -84,10 +89,10 @@ contract Roulette is Ownable {
         
         uint256 realAmount = amount - withdrawalFee;
         
-        playerBalances[msg.sender] -= amount;
-        totalPlayerBalances -= amount;
         (bool success, ) = msg.sender.call{value: realAmount, gas: 23000}("");
         require(success, "Transfer failed");
+        playerBalances[msg.sender] -= amount;
+        totalPlayerBalances -= amount;
         
         emit PlayerWithdrawal(msg.sender, amount);
     }
@@ -120,7 +125,7 @@ contract Roulette is Ownable {
     }
 
     // Function to place multiple bets
-    function roll(Bet[] calldata bets) external {
+    function roll(Bet[] calldata bets) external returns (RollResult memory) {
         require(bets.length > 0, "No bets provided");
         
         // Calculate total bet amount
@@ -133,11 +138,14 @@ contract Roulette is Ownable {
         require(totalBetAmount <= playerBalances[msg.sender], "Insufficient player balance");
         
         // Generate random number once for all bets
-        uint256 randomNumber = uint256(keccak256(abi.encodePacked(
+        uint8 randomNumber = uint8(uint256(keccak256(abi.encodePacked(
             block.timestamp,
             block.prevrandao,
             msg.sender
-        ))) % 37;
+        ))) % 37);
+
+        // Initialize bet results array
+        uint256[] memory betResults = new uint256[](bets.length);
 
         // Process each bet
         for (uint256 i = 0; i < bets.length; i++) {
@@ -167,7 +175,9 @@ contract Roulette is Ownable {
             // Check if bet won
             bool won = false;
             if (currentBet.betType == BET_TYPE_SINGLE_NUMBER) {
-                won = uint8(randomNumber) == currentBet.number;
+                won = randomNumber == currentBet.number;
+            } else if (randomNumber == 0) {
+                won = false;
             } else if (currentBet.betType == BET_TYPE_EVEN_ODD) {
                 won = (randomNumber % 2) == currentBet.number;
             } else if (currentBet.betType == BET_TYPE_RED_BLACK) {
@@ -177,15 +187,13 @@ contract Roulette is Ownable {
             } else if (currentBet.betType == BET_TYPE_2_TO_1) {
                 won = (randomNumber % 3) == currentBet.number;
             } else if (currentBet.betType == BET_TYPE_THIRD) {
-                won = uint8(randomNumber) > currentBet.number * 12 &&
-                      uint8(randomNumber) <= (currentBet.number + 1) * 12;
-
+                won = randomNumber > currentBet.number * 12 &&
+                      randomNumber <= (currentBet.number + 1) * 12;
             } else if (currentBet.betType == BET_TYPE_HALF) {
-                uint8 number = uint8(randomNumber);
                 if (currentBet.number == 0) {
-                    won = number >= 1 && number <= 18;
+                    won = randomNumber >= 1 && randomNumber <= 18;
                 } else {
-                    won = number >= 19 && number <= 36;
+                    won = randomNumber >= 19 && randomNumber <= 36;
                 }
             }
 
@@ -204,14 +212,18 @@ contract Roulette is Ownable {
                 }
                 playerBalances[msg.sender] += winAmount;
                 totalPlayerBalances += winAmount;
-                emit BetWon(msg.sender, winAmount);
+                betResults[i] = winAmount;
             } else {
                 playerBalances[msg.sender] -= currentBet.amount;
                 totalPlayerBalances -= currentBet.amount;
-                emit BetLost(msg.sender, currentBet.amount);
+                betResults[i] = 0;
             }
-
-            emit BetPlaced(msg.sender, currentBet.betType, currentBet.number, currentBet.amount);
         }
+        
+        // Emit Roll event with random number
+        emit Roll(msg.sender, RollResult(randomNumber, betResults));
+        
+        // Return roll result
+        return RollResult(randomNumber, betResults);
     }
 }
