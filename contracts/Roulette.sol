@@ -125,7 +125,7 @@ contract Roulette is Ownable {
     }
 
     // Function to place multiple bets
-    function roll(Bet[] calldata bets) external returns (RollResult memory) {
+    function roll(Bet[] calldata bets) external {
         require(bets.length > 0, "No bets provided");
         
         // Calculate total bet amount
@@ -222,8 +222,5 @@ contract Roulette is Ownable {
         
         // Emit Roll event with random number
         emit Roll(msg.sender, RollResult(randomNumber, betResults));
-        
-        // Return roll result
-        return RollResult(randomNumber, betResults);
     }
 }

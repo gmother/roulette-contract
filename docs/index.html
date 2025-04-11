@@ -50,11 +50,77 @@
         <!-- Bets controls -->
         <div class="bets-controls">
             <h2>Place Bets</h2>
-            <div class="bets-actions">
-                <button id="bet-even-btn" class="bet-btn even">Even</button>
-                <button id="bet-odd-btn" class="bet-btn odd">Odd</button>
-                <button id="bet-red-btn" class="bet-btn red">Red</button>
-                <button id="bet-black-btn" class="bet-btn black">Black</button>
+            
+            <!-- Zero and Numbers row -->
+            <div class="bet-row">
+                <!-- Zero bet -->
+                <div class="bet-group zero-group">
+                    <h3>Zero</h3>
+                    <div class="bets-actions">
+                        <button id="bet-zero-btn" class="bet-btn zero">0</button>
+                    </div>
+                </div>
+
+                <!-- Numbers 1-36 -->
+                <div class="bet-group numbers-group">
+                    <h3>Numbers</h3>
+                    <div class="bets-actions numbers-grid">
+                        <!-- Numbers will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Red/Black, Even/Odd, Halves row -->
+            <div class="bet-row">
+                <!-- Red/Black -->
+                <div class="bet-group">
+                    <h3>Red/Black</h3>
+                    <div class="bets-actions">
+                        <button id="bet-red-btn" class="bet-btn red">Red</button>
+                        <button id="bet-black-btn" class="bet-btn black">Black</button>
+                    </div>
+                </div>
+
+                <!-- Even/Odd -->
+                <div class="bet-group">
+                    <h3>Even/Odd</h3>
+                    <div class="bets-actions">
+                        <button id="bet-even-btn" class="bet-btn even">Even</button>
+                        <button id="bet-odd-btn" class="bet-btn odd">Odd</button>
+                    </div>
+                </div>
+
+                <!-- Halves -->
+                <div class="bet-group">
+                    <h3>Halves</h3>
+                    <div class="bets-actions">
+                        <button id="bet-half-0-btn" class="bet-btn">1-18</button>
+                        <button id="bet-half-1-btn" class="bet-btn">19-36</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 to 1 and Dozens row -->
+            <div class="bet-row">
+                <!-- 2 to 1 -->
+                <div class="bet-group">
+                    <h3>Columns (2to1)</h3>
+                    <div class="bets-actions">
+                        <button id="bet-2to1-0-btn" class="bet-btn">1st</button>
+                        <button id="bet-2to1-1-btn" class="bet-btn">2nd</button>
+                        <button id="bet-2to1-2-btn" class="bet-btn">3rd</button>
+                    </div>
+                </div>
+
+                <!-- Dozens -->
+                <div class="bet-group">
+                    <h3>Dozens</h3>
+                    <div class="bets-actions">
+                        <button id="bet-dozen-0-btn" class="bet-btn">1-12</button>
+                        <button id="bet-dozen-1-btn" class="bet-btn">13-24</button>
+                        <button id="bet-dozen-2-btn" class="bet-btn">25-36</button>
+                    </div>
+                </div>
             </div>
             
             <!-- Current bets list -->

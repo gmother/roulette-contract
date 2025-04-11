@@ -1,3 +1,11 @@
+// Bet type constants
+const BET_TYPE_SINGLE_NUMBER = 0;    // Ставка на конкретное число (0-36)
+const BET_TYPE_EVEN_ODD = 1;         // Ставка на четное/нечетное (0=четное, 1=нечетное)
+const BET_TYPE_RED_BLACK = 2;        // Ставка на красное/черное (0=красное, 1=черное)
+const BET_TYPE_2_TO_1 = 3;           // Ставка на колонку (0=первая, 1=вторая, 2=третья)
+const BET_TYPE_THIRD = 4;            // Ставка на дюжину (0=первая, 1=вторая, 2=третья)
+const BET_TYPE_HALF = 5;             // Ставка на половину (0=первая, 1=вторая)
+
 let web3;
 let contract;
 let currentAccount;
@@ -397,13 +405,19 @@ async function rollAllBets() {
         }));
         
         // Send transaction and get roll result with increased gas limit
-        const result = await callContractMethod('roll', [betsToSend], true, { 
+        const tx = await callContractMethod('roll', [betsToSend], true, { 
             gas: 500000,
         });
         
-        // Get random number and bet results from RollResult structure
-        const randomNumber = result[0]; // randomNumber is the first element
-        const betResults = result[1];   // betResults is the second element
+        // Get result from Roll event
+        const rollEvent = tx.events.Roll;
+        if (!rollEvent) {
+            throw new Error('Roll event not found in transaction');
+        }
+        
+        const result = rollEvent.returnValues.result;
+        const randomNumber = result.randomNumber;
+        const betResults = result.betResults;
         
         // Update state
         updateBankState();
@@ -450,180 +464,94 @@ function clearBets() {
     document.getElementById('total-win-amount').textContent = '0';
 }
 
-// Setup event listeners
+// Function to setup event handlers
 function setupEventHandlers() {
-    // Bank management buttons
-    document.getElementById('deposit-to-bank-btn').addEventListener('click', async () => {
-        const amount = prompt('Enter amount to deposit to bank (in Gwei):');
-        if (!amount) return;
-        
-        try {
-            // Convert amount to wei (1 Gwei = 10^9 wei)
-            const weiAmount = web3.utils.toWei(amount, 'gwei');
-            
-            // Validate amount
-            if (weiAmount <= 0) {
-                showError('Amount must be greater than 0');
-                return;
-            }
-            
-            // Get current game state
-            const gameState = await callContractMethod('getGameState');
-            
-            // Check if bank has enough balance
-            const bankBalance = gameState.bankBalance;
-            if (BigInt(weiAmount) > BigInt(bankBalance)) {
-                showError('Insufficient bank balance');
-                return;
-            }
-            
-            // Call contract method
-            await callContractMethod('depositToBank', [], true, { value: weiAmount });
-            updateBankState();
-        } catch (error) {
-            showError('Error depositing to bank: ' + error.message);
-        }
-    });
-
-    document.getElementById('withdraw-from-bank-btn').addEventListener('click', async () => {
-        const amount = prompt('Enter amount to withdraw from bank (in Gwei):');
-        if (!amount) return;
-        
-        try {
-            // Convert amount to wei (1 Gwei = 10^9 wei)
-            const weiAmount = web3.utils.toWei(amount, 'gwei');
-            
-            // Validate amount
-            if (weiAmount <= 0) {
-                showError('Amount must be greater than 0');
-                return;
-            }
-            
-            // Get current game state
-            const gameState = await callContractMethod('getGameState');
-            
-            // Check if bank has enough balance
-            const bankBalance = gameState.bankBalance;
-            const totalPlayerBalances = gameState.totalPlayerBalances;
-            
-            // Check if amount is less than available funds (bank balance minus total player balances)
-            if (BigInt(weiAmount) > BigInt(bankBalance) - BigInt(totalPlayerBalances)) {
-                showError('Cannot withdraw more than available funds');
-                return;
-            }
-            
-            // Call contract method
-            await callContractMethod('withdrawFromBank', [weiAmount], true);
-            updateBankState();
-        } catch (error) {
-            showError('Error withdrawing from bank: ' + error.message);
-        }
-    });
-
-    document.getElementById('set-max-bet-btn').addEventListener('click', async () => {
-        const amount = prompt('Enter new maximum bet amount (in Gwei):');
+    // Bank controls
+    document.getElementById('deposit-to-bank-btn').addEventListener('click', () => {
+        const amount = prompt('Enter amount to deposit (in Gwei):');
         if (amount) {
-            try {
-                const weiAmount = web3.utils.toWei(amount, 'gwei');
-                await callContractMethod('setMaxBet', [weiAmount], true);
-                updateBankState();
-            } catch (error) {
-                showError('Error setting maximum bet: ' + error.message);
-            }
+            depositToBank(web3.utils.toWei(amount, 'gwei'));
         }
     });
 
-    document.getElementById('set-withdrawal-fee-btn').addEventListener('click', async () => {
+    document.getElementById('withdraw-from-bank-btn').addEventListener('click', () => {
+        const amount = prompt('Enter amount to withdraw (in Gwei):');
+        if (amount) {
+            withdrawFromBank(web3.utils.toWei(amount, 'gwei'));
+        }
+    });
+
+    document.getElementById('set-max-bet-btn').addEventListener('click', () => {
+        const amount = prompt('Enter new maximum bet (in Gwei):');
+        if (amount) {
+            setMaxBet(web3.utils.toWei(amount, 'gwei'));
+        }
+    });
+
+    document.getElementById('set-withdrawal-fee-btn').addEventListener('click', () => {
         const amount = prompt('Enter new withdrawal fee (in Gwei):');
         if (amount) {
-            try {
-                const weiAmount = web3.utils.toWei(amount, 'gwei');
-                await callContractMethod('setWithdrawalFee', [weiAmount], true);
-                updateBankState();
-            } catch (error) {
-                showError('Error setting withdrawal fee: ' + error.message);
-            }
+            setWithdrawalFee(web3.utils.toWei(amount, 'gwei'));
         }
     });
 
-    // Player account buttons
-    document.getElementById('deposit-to-account-btn').addEventListener('click', async () => {
-        const amount = prompt('Enter amount to deposit to your account (in Gwei):');
-        if (!amount) return;
-        
-        try {
-            // Convert amount to wei (1 Gwei = 10^9 wei)
-            const weiAmount = web3.utils.toWei(amount, 'gwei');
-            
-            // Validate amount
-            if (weiAmount <= 0) {
-                showError('Amount must be greater than 0');
-                return;
-            }
-            
-            // Call contract method
-            await callContractMethod('deposit', [], true, { value: weiAmount });
-            updateBankState();
-        } catch (error) {
-            showError('Error depositing to account: ' + error.message);
-        }
-    });
-    
-    document.getElementById('withdraw-from-account-btn').addEventListener('click', async () => {
-        const amount = prompt('Enter amount to withdraw from your account (in Gwei):');
-        if (!amount) return;
-        
-        try {
-            // Convert amount to wei (1 Gwei = 10^9 wei)
-            const weiAmount = web3.utils.toWei(amount, 'gwei');
-            
-            // Get current game state
-            const gameState = await callContractMethod('getGameState');
-            const playerBalance = gameState.playerBalance;
-            const withdrawalFee = gameState.withdrawalFee;
-            
-            // Validate amount
-            if (weiAmount <= withdrawalFee) {
-                showError('Amount must be greater than withdrawal fee');
-                return;
-            }
-            
-            // Check if player has enough balance
-            if (BigInt(weiAmount) > BigInt(playerBalance)) {
-                showError('Insufficient player balance');
-                return;
-            }
-            
-            // Call contract method
-            await callContractMethod('withdraw', [weiAmount], true);
-            updateBankState();
-        } catch (error) {
-            showError('Error withdrawing from account: ' + error.message);
+    // Account controls
+    document.getElementById('deposit-to-account-btn').addEventListener('click', () => {
+        const amount = prompt('Enter amount to deposit (in Gwei):');
+        if (amount) {
+            deposit(web3.utils.toWei(amount, 'gwei'));
         }
     });
 
-    // Bet buttons
-    document.getElementById('bet-even-btn').addEventListener('click', () => addBet(1, 0)); // BET_TYPE_EVEN_ODD, 0 for even
-    document.getElementById('bet-odd-btn').addEventListener('click', () => addBet(1, 1));  // BET_TYPE_EVEN_ODD, 1 for odd
-    document.getElementById('bet-red-btn').addEventListener('click', () => addBet(2, 0));  // BET_TYPE_RED_BLACK, 0 for red
-    document.getElementById('bet-black-btn').addEventListener('click', () => addBet(2, 1)); // BET_TYPE_RED_BLACK, 1 for black
-    
+    document.getElementById('withdraw-from-account-btn').addEventListener('click', () => {
+        const amount = prompt('Enter amount to withdraw (in Gwei):');
+        if (amount) {
+            withdraw(web3.utils.toWei(amount, 'gwei'));
+        }
+    });
+
+    // Create number buttons
+    const numbersGrid = document.querySelector('.numbers-grid');
+    for (let i = 1; i <= 36; i++) {
+        const button = document.createElement('button');
+        button.id = `bet-number-${i}-btn`;
+        button.className = 'bet-btn number';
+        button.setAttribute('data-number', i);
+        button.textContent = i;
+        button.addEventListener('click', () => addBet(BET_TYPE_SINGLE_NUMBER, i));
+        numbersGrid.appendChild(button);
+    }
+
+    // Zero bet
+    const zeroButton = document.getElementById('bet-zero-btn');
+    zeroButton.setAttribute('data-number', '0');
+    zeroButton.addEventListener('click', () => addBet(BET_TYPE_SINGLE_NUMBER, 0));
+
+    // Red/Black bets
+    document.getElementById('bet-red-btn').addEventListener('click', () => addBet(BET_TYPE_RED_BLACK, 0));
+    document.getElementById('bet-black-btn').addEventListener('click', () => addBet(BET_TYPE_RED_BLACK, 1));
+
+    // Even/Odd bets
+    document.getElementById('bet-even-btn').addEventListener('click', () => addBet(BET_TYPE_EVEN_ODD, 0));
+    document.getElementById('bet-odd-btn').addEventListener('click', () => addBet(BET_TYPE_EVEN_ODD, 1));
+
+    // 2 to 1 bets
+    document.getElementById('bet-2to1-0-btn').addEventListener('click', () => addBet(BET_TYPE_2_TO_1, 0));
+    document.getElementById('bet-2to1-1-btn').addEventListener('click', () => addBet(BET_TYPE_2_TO_1, 1));
+    document.getElementById('bet-2to1-2-btn').addEventListener('click', () => addBet(BET_TYPE_2_TO_1, 2));
+
+    // Dozens bets
+    document.getElementById('bet-dozen-0-btn').addEventListener('click', () => addBet(BET_TYPE_THIRD, 0));
+    document.getElementById('bet-dozen-1-btn').addEventListener('click', () => addBet(BET_TYPE_THIRD, 1));
+    document.getElementById('bet-dozen-2-btn').addEventListener('click', () => addBet(BET_TYPE_THIRD, 2));
+
+    // Halves bets
+    document.getElementById('bet-half-0-btn').addEventListener('click', () => addBet(BET_TYPE_HALF, 0));
+    document.getElementById('bet-half-1-btn').addEventListener('click', () => addBet(BET_TYPE_HALF, 1));
+
     // Roll button
-    document.getElementById('roll-btn').addEventListener('click', async () => {
-        await rollAllBets();
-    });
-    
-    // Clear bets when adding a new bet
-    const betButtons = document.querySelectorAll('#bet-even-btn, #bet-odd-btn, #bet-red-btn, #bet-black-btn');
-    betButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // If there are results from previous bets, clear them
-            if (currentBets.length > 0 && currentBets[0].outcome !== 'pending') {
-                clearBets();
-            }
-        });
-    });
-    
+    document.getElementById('roll-btn').addEventListener('click', rollAllBets);
+
     // Error message close button
     document.querySelector('.close-btn').addEventListener('click', () => {
         document.getElementById('error-message').style.display = 'none';
