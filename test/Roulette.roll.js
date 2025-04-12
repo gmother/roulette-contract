@@ -41,8 +41,13 @@ describe("Roulette", function () {
             number: betNumber,
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 0, betNumber, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow single number bet with invalid number", async function () {
@@ -68,8 +73,13 @@ describe("Roulette", function () {
             number: 0, // 0 for even
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 1, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should allow placing an odd bet", async function () {
@@ -81,8 +91,13 @@ describe("Roulette", function () {
             number: 1, // 1 for odd
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 1, 1, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow even/odd bet with invalid number", async function () {
@@ -108,8 +123,13 @@ describe("Roulette", function () {
             number: 0, // 0 for red
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 2, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should allow placing a black bet", async function () {
@@ -121,8 +141,13 @@ describe("Roulette", function () {
             number: 1, // 1 for black
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 2, 1, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow red/black bet with invalid number", async function () {
@@ -148,8 +173,13 @@ describe("Roulette", function () {
             number: 0, // First column
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 3, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow column bet with invalid number", async function () {
@@ -175,8 +205,13 @@ describe("Roulette", function () {
             number: 0, // First dozen (1-12)
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 4, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow dozen bet with invalid number", async function () {
@@ -202,8 +237,13 @@ describe("Roulette", function () {
             number: 0, // First half (1-18)
             amount: betAmount
           }])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 5, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 1;
+          });
       });
 
       it("Should not allow half bet with invalid number", async function () {
@@ -236,10 +276,13 @@ describe("Roulette", function () {
               amount: betAmount
             }
           ])
-        ).to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 0, 7, betAmount)
-          .to.emit(roulette, "BetPlaced")
-          .withArgs(addr1.address, 1, 0, betAmount);
+        ).to.emit(roulette, "Roll")
+          .withArgs(addr1.address, (result) => {
+            return result.randomNumber >= 0 && 
+                   result.randomNumber <= 36 &&
+                   Array.isArray(result.betResults) &&
+                   result.betResults.length === 2;
+          });
       });
 
       it("Should not allow empty bet array", async function () {
@@ -288,7 +331,7 @@ describe("Roulette", function () {
     });
 
     describe("Win/Loss Processing", function () {
-      it("Should emit BetWon event when bet wins", async function () {
+      it("Should emit Roll event", async function () {
         // Note: This test might fail due to randomness
         // In a real scenario, you might want to mock the random number generation
         const betAmount = ethers.parseEther("1.0");
@@ -302,7 +345,7 @@ describe("Roulette", function () {
         // Check if either BetWon or BetLost was emitted
         const receipt = await tx.wait();
         const events = receipt.logs.filter(log => 
-          log.fragment && (log.fragment.name === "BetWon" || log.fragment.name === "BetLost")
+          log.fragment && log.fragment.name === "Roll"
         );
         expect(events.length).to.be.greaterThan(0);
       });
