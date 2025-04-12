@@ -11,6 +11,7 @@ let contract;
 let currentAccount;
 let isOwner = false;
 let currentBets = []; // Array to store current bets
+let network;
 
 // Function to load contract ABI
 async function loadContractABI() {
@@ -31,14 +32,13 @@ async function loadContractABI() {
 // Function to call contract methods with logging
 async function callContractMethod(methodName, params = [], isSend = false, sendParams = {}) {
     try {
-        if (CONFIG.debug[network]) {
-            console.log(`Calling contract method: ${methodName}`);
-            console.log(`Parameters:`, params);
-        }
+        console.log(`Calling contract method: ${methodName}`);
+        console.log(`Parameters:`, params);
+        console.log(`Is send:`, isSend);
+        console.log(`Send params:`, sendParams);
             
         let result;
         if (isSend) {
-            console.log(`Send parameters:`, sendParams);
             result = await contract.methods[methodName](...params).send({
                 from: currentAccount,
                 ...sendParams
@@ -49,44 +49,11 @@ async function callContractMethod(methodName, params = [], isSend = false, sendP
             });
         }
         
-        if (CONFIG.debug[network]) {
-            console.log(`Method ${methodName} returned:`, result);
-        }
+        console.log(`Method ${methodName} returned:`, result);
         return result;
     } catch (error) {
         console.error(`Error calling ${methodName}:`, error);
-        
-        // Try to extract error message from contract
-        let errorMessage = error.message;
-        
-        // Log full error object for debugging
         console.error('Full error object:', JSON.stringify(error, null, 2));
-        
-        // Check if error has data property
-        if (error.data) {
-            console.error('Error data:', error.data);
-            
-            // Try different ways to extract error message
-            if (typeof error.data === 'string') {
-                try {
-                    const errorData = JSON.parse(error.data);
-                    if (errorData.message) {
-                        errorMessage = errorData.message;
-                    }
-                } catch (e) {
-                    console.error('Error parsing error data:', e);
-                }
-            } else if (error.data.message) {
-                errorMessage = error.data.message;
-            }
-        }
-        
-        // Check if error has reason property (common in MetaMask errors)
-        if (error.reason) {
-            errorMessage = error.reason;
-        }
-        
-        showError(errorMessage);
         throw error;
     }
 }
@@ -95,9 +62,10 @@ async function callContractMethod(methodName, params = [], isSend = false, sendP
 async function getCurrentNetwork() {
     if (window.ethereum) {
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log(`Current network chainId: ${chainId}`);
         
         // Determine network by chainId
-        switch (chainId) {
+        switch (chainId.toLowerCase()) {
             case CONFIG.chainIds.hardhat:
                 return 'hardhat';
             case CONFIG.chainIds.sepolia:
@@ -105,9 +73,11 @@ async function getCurrentNetwork() {
             case CONFIG.chainIds.polygon:
                 return 'polygon';
             default:
-                return 'hardhat'; // Default to hardhat
+                showError('Unsupported network');
+                return 'hardhat';
         }
     }
+    showError('window.ethereum is undefined, please install MetaMask');
     return 'hardhat';
 }
 
@@ -119,81 +89,103 @@ async function switchNetwork(network) {
             params: [{ chainId: CONFIG.chainIds[network] }],
         });
     } catch (switchError) {
-        // If network is not added to MetaMask, add it
-        if (switchError.code === 4902) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: CONFIG.chainIds[network],
-                        chainName: CONFIG.chainNames[network],
-                        rpcUrls: [CONFIG.rpcUrls[network]],
-                        nativeCurrency: {
-                            name: 'MATIC',
-                            symbol: 'MATIC',
-                            decimals: 18
-                        }
-                    }]
-                });
-            } catch (addError) {
-                console.error('Error adding network:', addError);
-            }
-        } else {
-            console.error('Error switching network:', switchError);
-        }
+        console.error('Error switching network:', switchError);
     }
 }
 
 // Initialize application
 async function init() {
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            // Request account access permission
+    try {
+        console.log('Starting initialization...');
+        
+        // Check if MetaMask is installed
+        if (typeof window.ethereum !== 'undefined') {
+            console.log('MetaMask is installed');
+            
+            // Request account access
+            console.log('Requesting account access...');
             await window.ethereum.request({ method: 'eth_requestAccounts' });
             
-            // Create Web3 instance
+            // Create Web3 instance with MetaMask provider
+            console.log('Creating Web3 instance...');
             web3 = new Web3(window.ethereum);
             
             // Get current network
-            const network = await getCurrentNetwork();
+            console.log('Getting current network...');
+            network = await getCurrentNetwork();
+            console.log('Current network:', network);
             
-            // Get contract address for current network
-            const contractAddress = CONFIG.contractAddresses[network];
+            // Listen for account changes (works in Chrome)
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+            
+            // Listen for network changes
+            window.ethereum.on('chainChanged', async (chainId) => {
+                console.log('Network changed:', chainId);
+                // Update network
+                network = await getCurrentNetwork();
+                // Reload page when network changes
+                location.reload();
+            });
+            
+            // Periodic account check for Firefox
+            setInterval(async () => {
+                const accounts = await web3.eth.getAccounts();
+                if (accounts[0] !== currentAccount) {
+                    handleAccountsChanged(accounts);
+                }
+            }, 1000);
             
             // Load contract ABI
+            console.log('Loading contract ABI...');
             const contractABI = await loadContractABI();
-            console.log(contractABI);
+            console.log('Contract ABI loaded:', contractABI);
+            
+            // Get contract address for current network
+            console.log('Getting contract address for network:', network);
+            const contractAddress = CONFIG.contractAddresses[network];
+            console.log('Contract address:', contractAddress);
             
             // Create contract instance
+            console.log('Creating contract instance...');
             contract = new web3.eth.Contract(contractABI, contractAddress);
             
-            // Get current account
-            const accounts = await web3.eth.getAccounts();
-            currentAccount = accounts[0];
-            
-            // Check if current account is contract owner
-            const owner = await callContractMethod('owner');
-            isOwner = currentAccount.toLowerCase() === owner.toLowerCase();
-            
-            // Update UI based on whether user is owner
-            if (isOwner) {
-                document.querySelector('.bank-controls').style.display = 'block';
-            } else {
-                document.querySelector('.bank-controls').style.display = 'none';
+            // Verify contract instance
+            console.log('Verifying contract instance...');
+            try {
+                // Get owner using the correct method
+                const owner = await contract.methods.owner().call();
+                console.log('Contract owner:', owner);
+            } catch (error) {
+                console.error('Error verifying contract:', error);
+                showError('Error verifying contract: ' + error.message);
+                return;
             }
             
-            // Update bank state
-            updateBankState();
-            
-            // Set up event handlers
-            setupEventHandlers();
-            
-        } catch (error) {
-            console.error('Error initializing app:', error);
-            showError('Error initializing app: ' + error.message);
+            // Update UI
+            console.log('Updating UI...');
+            await updateUI();
+            console.log('Initialization complete');
+        } else {
+            console.error('MetaMask is not installed');
+            showError('Please install MetaMask to use this application');
         }
-    } else {
-        showError('Please install MetaMask to use this dApp');
+    } catch (error) {
+        console.error('Error initializing:', error);
+        showError('Error initializing application: ' + error.message);
+    }
+}
+
+// Handle account changes
+async function handleAccountsChanged(accounts) {
+    if (accounts.length === 0) {
+        // MetaMask is locked or user has not connected any accounts
+        showError('Please connect to MetaMask');
+    } else if (accounts[0] !== currentAccount) {
+        // Account has changed
+        currentAccount = accounts[0];
+        console.log('Account changed:', currentAccount);
+        // Update UI
+        await updateUI();
     }
 }
 
@@ -218,7 +210,7 @@ async function updateBankState() {
         
     } catch (error) {
         showError('Error updating bank state: ' + error.message);
-    }
+    } 
 }
 
 // Function to add a bet
@@ -568,6 +560,158 @@ function showError(message) {
     setTimeout(() => {
         errorMessage.style.display = 'none';
     }, 5000);
+}
+
+// Update UI
+async function updateUI() {
+    try {
+        // Get current account
+        const accounts = await web3.eth.getAccounts();
+        currentAccount = accounts[0];
+        console.log('Current account:', currentAccount);
+        
+        if (!currentAccount) {
+            showError('No account selected in MetaMask');
+            return;
+        }
+
+        // Wait for contract to be initialized
+        if (!contract) {
+            console.error('Contract not initialized');
+            showError('Contract not initialized');
+            return;
+        }
+
+        console.log('Checking contract owner...');
+        // Check if current account is contract owner
+        const owner = await contract.methods.owner().call();
+        console.log('Contract owner:', owner);
+        
+        isOwner = currentAccount.toLowerCase() === owner.toLowerCase();
+        console.log('Is owner:', isOwner);
+        
+        // Update UI based on whether user is owner
+        if (isOwner) {
+            document.querySelector('.bank-controls').style.display = 'block';
+        } else {
+            document.querySelector('.bank-controls').style.display = 'none';
+        }
+        
+        // Update bank state
+        await updateBankState();
+        
+        // Set up event handlers
+        setupEventHandlers();
+    } catch (error) {
+        console.error('Error updating UI:', error);
+        showError('Error updating UI: ' + error.message);
+    }
+}
+
+// Bank management functions
+async function depositToBank(amount) {
+    try {
+        await callContractMethod('depositToBank', [], true, {
+            value: amount,
+            gas: 50000
+        });
+        await updateBankState();
+    } catch (error) {
+        showError('Error depositing to bank: ' + error.message);
+    }
+}
+
+async function withdrawFromBank(amount) {
+    try {
+        await callContractMethod('withdrawFromBank', [amount], true, {
+            gas: 50000
+        });
+        await updateBankState();
+    } catch (error) {
+        showError('Error withdrawing from bank: ' + error.message);
+    }
+}
+
+async function setMaxBet(amount) {
+    try {
+        await callContractMethod('setMaxBet', [amount], true, {
+            gas: 50000
+        });
+        await updateBankState();
+    } catch (error) {
+        showError('Error setting max bet: ' + error.message);
+    }
+}
+
+async function setWithdrawalFee(amount) {
+    try {
+        await callContractMethod('setWithdrawalFee', [amount], true, {
+            gas: 50000
+        });
+        await updateBankState();
+    } catch (error) {
+        showError('Error setting withdrawal fee: ' + error.message);
+    }
+}
+
+// Account management functions
+async function deposit(amount) {
+    try {
+        console.log('Starting deposit with amount:', amount);
+        
+        // Validate amount
+        if (!amount || amount <= 0) {
+            showError('Amount must be greater than 0');
+            return;
+        }
+        
+        // Get current balance
+        const balance = await web3.eth.getBalance(currentAccount);
+        console.log('Current balance:', balance);
+        
+        if (BigInt(balance) < BigInt(amount)) {
+            showError('Insufficient balance for deposit');
+            return;
+        }
+        
+        // Estimate gas
+        const gasEstimate = await contract.methods.deposit().estimateGas({
+            from: currentAccount,
+            value: amount
+        });
+        console.log('Estimated gas:', gasEstimate);
+        
+        // Add 20% to gas estimate for safety
+        const gasLimit = Math.floor(gasEstimate * 1.2);
+        console.log('Using gas limit:', gasLimit);
+        
+        // Send transaction with estimated gas
+        await callContractMethod('deposit', [], true, {
+            value: amount,
+            gas: gasLimit
+        });
+        
+        console.log('Deposit successful');
+        await updateBankState();
+    } catch (error) {
+        console.error('Error in deposit:', error);
+        if (error.receipt && error.receipt.status === false) {
+            showError('Transaction failed. Please check your balance and try again.');
+        } else {
+            showError('Error depositing: ' + error.message);
+        }
+    }
+}
+
+async function withdraw(amount) {
+    try {
+        await callContractMethod('withdraw', [amount], true, {
+            gas: 50000
+        });
+        await updateBankState();
+    } catch (error) {
+        showError('Error withdrawing: ' + error.message);
+    }
 }
 
 // Initialize when document is ready
